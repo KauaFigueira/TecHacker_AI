@@ -1,0 +1,13 @@
+# Bytecode do Python
+__pycache__/
+*.py[cod]
+
+# Cenário de laboratório (tools/lab_scenario.sh setup) — reversível, não versionado
+lab/
+
+# Saídas geradas em execução. O exemplo versionado fica em docs/exemplo-de-saida/
+out/
+
+# Sistema operacional / editor
+.DS_Store
+*.swp

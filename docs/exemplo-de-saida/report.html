@@ -1,0 +1,159 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>Endpoint Investigator - srv-app-01</title>
+<style>
+:root{--bg:#0f1319;--bg2:#151b24;--card:#182029;--line:#243040;--fg:#e6edf3;--fg2:#9aa9bb;--fg3:#6b7c91;--accent:#4da3ff;--green:#3ecf8e;--yellow:#ffc857;--red:#ff6b6b;--magenta:#c792ea;--blue:#5ec8ff;--crit:#ff4d4d;--high:#ff6b6b;--med:#ffc857;--low:#5ec8ff;--info:#7d8ea3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 70px}
+header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+h1{margin:0 0 4px;font-size:27px;letter-spacing:-.01em}
+.sub{color:var(--fg2);font-size:13.5px}
+.pipe{display:inline-block;margin-top:10px;padding:5px 11px;border:1px solid var(--line);border-radius:6px;background:var(--bg2);color:var(--blue);font-size:12px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;margin:18px 0 6px}
+.meta div{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px 13px}
+.meta .k{color:var(--fg3);font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+.meta .v{font-size:13.5px;margin-top:3px;word-break:break-all}
+h2{scroll-margin-top:14px;font-size:17px;margin:34px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line);color:var(--accent);letter-spacing:.01em}
+h2 .n{color:var(--fg3);font-weight:400;margin-right:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:13px}
+.stat .num{font-size:24px;font-weight:600}
+.stat .lbl{color:var(--fg3);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.sev-crit .num{color:var(--crit)}
+.sev-high .num{color:var(--high)}
+.sev-med .num{color:var(--med)}
+.sev-low .num{color:var(--low)}
+.sev-info .num{color:var(--info)}
+.finding{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:9px;padding:17px 19px;margin:15px 0}
+.finding.crit{border-left-color:var(--crit)}
+.finding.high{border-left-color:var(--high)}
+.finding.med{border-left-color:var(--med)}
+.finding.low{border-left-color:var(--low)}
+.finding.info{border-left-color:var(--info)}
+.fhead{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:9px}
+.badge{font-size:10.5px;font-weight:700;letter-spacing:.09em;padding:3px 8px;border-radius:4px;text-transform:uppercase}
+.b-crit{background:var(--crit);color:#160b0b}
+.b-high{background:var(--high);color:#1b0c0c}
+.b-med{background:var(--med);color:#1c1503}
+.b-low{background:var(--low);color:#04141c}
+.b-info{background:var(--info);color:#0d1116}
+.rule{font-family:ui-monospace,monospace;font-size:12px;color:var(--fg3);border:1px solid var(--line);padding:2px 7px;border-radius:4px}
+.ftitle{font-size:16px;font-weight:600;flex:1 1 100%;margin-top:3px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 13px}
+.chip{font-size:11.5px;color:var(--fg2);background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+.chip b{color:var(--fg)}
+.chip.corr{border-color:#4a3a63;color:var(--magenta)}
+.origem .mitre{color:var(--fg3);font-size:11.5px}
+.block{border-left:3px solid var(--line);padding:2px 0 2px 13px;margin:13px 0}
+.block .h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.b-evid{border-left-color:var(--green)}
+.b-evid .h{color:var(--green)}
+.b-interp{border-left-color:var(--yellow)}
+.b-interp .h{color:var(--yellow)}
+.b-hyp{border-left-color:var(--magenta)}
+.b-hyp .h{color:var(--magenta)}
+.b-miss{border-left-color:var(--red)}
+.b-miss .h{color:var(--red)}
+.b-fp{border-left-color:var(--fg3)}
+.b-fp .h{color:var(--fg3)}
+.b-path{border-left-color:var(--blue)}
+.b-path .h{color:var(--blue)}
+ul.tight{margin:0;padding-left:19px}
+ul.tight li{margin:4px 0}
+ul.none{margin:0;padding:0;list-style:none}
+.evi{background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:9px 12px;margin:7px 0}
+.evi .kind{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--bg);background:var(--green);border-radius:3px;padding:1px 6px;margin-right:7px;vertical-align:1px}
+.evi .kind.k-file{background:var(--yellow)}
+.evi .kind.k-service{background:var(--blue)}
+.evi .kind.k-log{background:var(--magenta)}
+.evi .kind.k-user{background:#e0a8ff}
+.evi .kind.k-socket{background:#7fe0d0}
+.evi .src{color:var(--fg3);font-size:11.5px;margin-top:5px;font-family:ui-monospace,monospace}
+.evi .raw{color:var(--fg2);font-size:11.5px;margin-top:4px;font-family:ui-monospace,monospace;background:#0d1219;border:1px solid var(--line);border-radius:5px;padding:6px 8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.path{font-family:ui-monospace,monospace;font-size:12.5px;background:#0d1219;border:1px solid var(--line);border-radius:6px;padding:10px 12px;line-height:1.8}
+.path .step:before{content:"-> ";color:var(--blue)}
+.path .step:first-child:before{content:"   "}
+.conf{color:var(--fg3);font-size:11.5px;margin-top:12px;padding-top:9px;border-top:1px dashed var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--fg3);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+td.mono{font-family:ui-monospace,monospace;font-size:12px}
+.tl-log{color:var(--magenta)}
+.tl-process{color:var(--green)}
+.tl-file{color:var(--yellow)}
+.note{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:13px 16px;color:var(--fg2);font-size:13.5px;margin:11px 0}
+.note.ai{border-color:#4a3a63;background:#1a1526}
+.ai-head{color:var(--magenta);font-weight:600;margin-bottom:6px}
+.ai-body{white-space:pre-wrap;color:var(--fg);font-size:13.5px;line-height:1.65}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--fg3);font-size:12.5px;font-style:italic}
+.empty{color:var(--green);background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:15px}
+@media(max-width:640px){.wrap{padding:16px}
+h1{font-size:22px}
+}
+</style></head><body><div class='wrap'>
+<header class='top'>
+<h1>Endpoint Investigator</h1>
+<div class='sub'>Resultado da investigacao &middot; host <b>srv-app-01</b> &middot; 2026-10-04T18:34:49-03:00</div>
+<div class='sub' style='margin-top:3px'>Kauã Figueira Santos e Matheus Constante &middot; Tecnologias Hackers &middot; Insper</div>
+<div class='pipe'>COLETA &rarr; NORMALIZACAO &rarr; CORRELACAO &rarr; EVIDENCIAS &rarr; HIPOTESES &rarr; RESULTADO</div>
+<div class='pipe' style='margin-left:8px;color:var(--green);border-color:#2f5a44'>Modelo da Aula 2: OBSERVE &rarr; HIPOTESE &rarr; EVIDENCIAS &rarr; CONCLUSAO</div>
+<div class='meta'>
+<div><div class='k'>Coletor</div><div class='v'>dataset</div></div>
+<div><div class='k'>Origem</div><div class='v'>/home/kaua/Documents/7_semestre/TecHacker/endpoint-investigator/datasets/04-correlacao</div></div>
+<div><div class='k'>Ferramenta</div><div class='v'>endpoint-investigator v1.0.0</div></div>
+<div><div class='k'>Schema</div><div class='v'>ei-evidence-bundle/1.0</div></div>
+</div></header>
+<h2 id='sec-inventario'><span class='n'>1</span>Inventario coletado</h2><div class='grid'>
+<div class='stat'><div class='num'>7</div><div class='lbl'>Processos</div></div>
+<div class='stat'><div class='num'>4</div><div class='lbl'>Permissoes</div></div>
+<div class='stat'><div class='num'>3</div><div class='lbl'>Servicos</div></div>
+<div class='stat'><div class='num'>7</div><div class='lbl'>Eventos de log</div></div>
+<div class='stat'><div class='num'>2</div><div class='lbl'>Identidades</div></div>
+</div>
+<div class='note'><b>Grafo de correlacao:</b> 23 entidades e 32 relacoes.<br><span class='mono' style='font-size:12px'>contido-em=2, emitido-por=3, executa-como=10, gerencia=3, pai-de=6, refere-pid=6, usa-script=2</span></div>
+<h2 id='sec-resumo'><span class='n'>2</span>Resumo dos achados</h2><div class='grid'>
+<div class='stat sev-high'><div class='num'>1</div><div class='lbl'>ALTA</div></div>
+<div class='stat sev-med'><div class='num'>2</div><div class='lbl'>MEDIA</div></div>
+<div class='stat sev-low'><div class='num'>2</div><div class='lbl'>BAIXA</div></div>
+<div class='stat sev-info'><div class='num'>0</div><div class='lbl'>INFO</div></div>
+<div class='stat'><div class='num'>86</div><div class='lbl'>Risco maximo</div></div>
+</div>
+<h2 id='sec-achados'><span class='n'>3</span>Achados &mdash; evidencia, interpretacao, hipotese e evidencia ausente</h2>
+<div class='finding high'><div class='fhead'><span class='badge b-high'>ALTA</span><span class='rule'>EI-R01</span><span class='rule'>risco 86/100</span><span class='rule'>confianca alta</span><span class='rule' title='A ferramenta nunca afirma exploracao'>exploracao comprovada: nao</span><div class='ftitle'>backup-agent.service (root) executa /opt/backup/backup.sh, gravavel por usuario nao privilegiado</div></div><div class='chips'><span class='chip corr'>correlacao: <b>servico + permissao + usuario</b></span><span class='chip'>categoria: <b>Relacao de privilegio</b></span><span class='chip'>id: <b>f6a9d292794f</b></span><span class='chip'>fontes: <b>3</b></span></div><div class='block b-evid'><div class='h'>Evidencia &mdash; o que foi observado</div><div class='evi'><span class='kind k-service'>service</span>Unidade &#x27;backup-agent.service&#x27; esta running com User=root e ExecStart=/bin/bash /opt/backup/backup.sh<div class='src'>fonte: dataset::services.txt:linha 4</div><div class='raw'>backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh</div></div><div class='evi'><span class='kind k-file'>file</span>&#x27;/opt/backup/backup.sh&#x27; tem modo 0777 (world-writable), dono root:root<div class='src'>fonte: dataset::permissions.csv:linha 3</div><div class='raw'>0777 root:root /opt/backup/backup.sh (mtime=2026-09-13T08:59:00-03:00)</div></div><div class='evi'><span class='kind k-process'>process</span>pid 2417 (root) corresponde ao ExecStart da unidade<div class='src'>fonte: dataset::processes.csv:linha 5</div><div class='raw'>pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh</div></div></div><div class='block b-interp'><div class='h'>Interpretacao &mdash; significado tecnico</div>&#x27;backup-agent.service&#x27; executa como &#x27;root&#x27; e depende de &#x27;/opt/backup/backup.sh&#x27;, que pode ser alterado por qualquer usuario local (modo 0777 concede escrita a &#x27;outros&#x27;). Quem altera o conteudo determina o que sera executado com esse privilegio na proxima execucao da unidade.</div><div class='block b-hyp'><div class='h'>Hipotese &mdash; explicacao possivel, nao comprovada</div>Hipotese: alguem fora do escopo do servico substitui &#x27;/opt/backup/backup.sh&#x27; e obtem execucao como root. As evidencias descrevem a viabilidade da relacao, nao que isso tenha ocorrido.</div><div class='block b-path'><div class='h'>Cadeia reconstruida</div><div class='path'><div class='step'>qualquer usuario local altera &#x27;/opt/backup/backup.sh&#x27;</div><div class='step'>unidade &#x27;backup-agent.service&#x27; executa &#x27;/opt/backup/backup.sh&#x27;</div><div class='step'>codigo passa a executar como &#x27;root&#x27;</div></div></div><div class='block b-miss'><div class='h'>Evidencia ausente &mdash; necessaria para confirmar ou rejeitar</div><ul class='tight'><li>Historico de alteracao e hash conhecido-bom de &#x27;/opt/backup/backup.sh&#x27;.</li><li>Quais usuarios nao privilegiados tem sessao nesta maquina.</li><li>ACL estendida e politica MAC, que podem restringir a escrita apesar do modo observado.</li></ul></div><div class='block b-fp'><div class='h'>Possibilidade de falso positivo</div><ul class='tight'><li>O modo pode vir de um instalador, com o recurso protegido por ACL, SELinux/AppArmor ou montagem read-only.</li></ul></div><div class='conf'>Base da confianca: 3 evidencia(s) em 3 dimensao(oes) (service, file, process) vindas de 3 fonte(s) independente(s): dataset::services.txt, dataset::permissions.csv, dataset::processes.csv.</div></div>
+<div class='finding med'><div class='fhead'><span class='badge b-med'>MEDIA</span><span class='rule'>EI-R13</span><span class='rule'>risco 42/100</span><span class='rule'>confianca media</span><span class='rule' title='A ferramenta nunca afirma exploracao'>exploracao comprovada: nao</span><div class='ftitle'>pid 2421 (root) inicia trafego externo para updates.example.invalid</div></div><div class='chips'><span class='chip corr'>correlacao: <b>processo + usuario + servico/log</b></span><span class='chip'>categoria: <b>Contexto de execucao</b></span><span class='chip'>id: <b>8de5f23c9708</b></span><span class='chip'>fontes: <b>2</b></span></div><div class='block b-evid'><div class='h'>Evidencia &mdash; o que foi observado</div><div class='evi'><span class='kind k-process'>process</span>pid 2421 executa &#x27;curl&#x27; como &#x27;root&#x27; com destino updates.example.invalid<div class='src'>fonte: dataset::processes.csv:linha 6</div><div class='raw'>pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS https://updates.example.invalid/status</div></div><div class='evi'><span class='kind k-process'>process</span>Pai pid 2417 (root): /bin/bash /opt/backup/backup.sh<div class='src'>fonte: dataset::processes.csv:linha 5</div><div class='raw'>pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh</div></div><div class='evi'><span class='kind k-service'>service</span>&#x27;backup-agent.service&#x27; (root) explica a cadeia de execucao do pid 2421<div class='src'>fonte: dataset::services.txt:linha 4</div><div class='raw'>backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh</div></div></div><div class='block b-interp'><div class='h'>Interpretacao &mdash; significado tecnico</div>Processo com privilegio (&#x27;root&#x27;) invoca &#x27;curl&#x27; com destino fora do host (updates.example.invalid). O destino vem dos argumentos do comando, nao de coleta de rede. O relevante nao e a conexao existir, e o contexto: saida originada de identidade privilegiada amplia o impacto de um canal comprometido.</div><div class='block b-hyp'><div class='h'>Hipotese &mdash; explicacao possivel, nao comprovada</div>Hipotese: agente de telemetria, atualizacao ou backup - sustentada por &#x27;backup-agent.service&#x27;. A ferramenta NAO classifica a conexao como C2 ou malware: destino, frequencia e conteudo do trafego nao estao entre as fontes coletadas.</div><div class='block b-miss'><div class='h'>Evidencia ausente &mdash; necessaria para confirmar ou rejeitar</div><ul class='tight'><li>Resolucao DNS e reputacao de &#x27;updates.example.invalid&#x27;.</li><li>Se a conexao chegou a ser estabelecida, e com que volume.</li></ul></div><div class='block b-fp'><div class='h'>Possibilidade de falso positivo</div><ul class='tight'><li>Agentes de monitoramento e atualizadores fazem exatamente isso.</li><li>Uma URL em linha de comando nao prova que houve conexao.</li></ul></div><div class='conf'>Base da confianca: 3 evidencia(s) em 2 dimensao(oes) (process, service) vindas de 2 fonte(s) independente(s): dataset::processes.csv, dataset::services.txt.</div></div>
+<div class='finding med'><div class='fhead'><span class='badge b-med'>MEDIA</span><span class='rule'>EI-R05</span><span class='rule'>risco 32/100</span><span class='rule'>confianca baixa</span><span class='rule' title='A ferramenta nunca afirma exploracao'>exploracao comprovada: nao</span><div class='ftitle'>Binario SUID /usr/local/bin/report-sync (root:root)</div></div><div class='chips'><span class='chip corr'>correlacao: <b>permissao + processo/servico</b></span><span class='chip'>categoria: <b>Superficie de privilegio</b></span><span class='chip'>id: <b>dc6d871b7c83</b></span><span class='chip'>fontes: <b>1</b></span></div><div class='block b-evid'><div class='h'>Evidencia &mdash; o que foi observado</div><div class='evi'><span class='kind k-file'>file</span>&#x27;/usr/local/bin/report-sync&#x27; com modo 4755 (setuid), dono root:root<div class='src'>fonte: dataset::permissions.csv:linha 5</div><div class='raw'>4755 root:root /usr/local/bin/report-sync (mtime=2026-09-11T08:57:00-03:00)</div></div></div><div class='block b-interp'><div class='h'>Interpretacao &mdash; significado tecnico</div>&#x27;/usr/local/bin/report-sync&#x27; carrega o bit SUID: executa com a identidade do dono (&#x27;root&#x27;), nao com a de quem o invoca. Qualquer falha de tratamento de entrada nesse binario e explorada com esse privilegio.</div><div class='block b-hyp'><div class='h'>Hipotese &mdash; explicacao possivel, nao comprovada</div>Hipotese: bit definido pelo empacotador da distribuicao, como em sudo, passwd e mount. A presenca do bit nao caracteriza vulnerabilidade nem comprometimento.</div><div class='block b-miss'><div class='h'>Evidencia ausente &mdash; necessaria para confirmar ou rejeitar</div><ul class='tight'><li>Hash de &#x27;/usr/local/bin/report-sync&#x27; comparado ao pacote de origem (dpkg -V / rpm -V).</li><li>Se o binario e conhecido por permitir escape de privilegio quando SUID.</li></ul></div><div class='block b-fp'><div class='h'>Possibilidade de falso positivo</div><ul class='tight'><li>Binarios SUID de sistema sao esperados em qualquer instalacao.</li></ul></div><div class='conf'>Base da confianca: 1 evidencia(s) em 1 dimensao(oes) (file) vindas de 1 fonte(s) independente(s): dataset::permissions.csv.</div></div>
+<div class='finding low'><div class='fhead'><span class='badge b-low'>BAIXA</span><span class='rule'>EI-R14</span><span class='rule'>risco 31/100</span><span class='rule'>confianca alta</span><span class='rule' title='A ferramenta nunca afirma exploracao'>exploracao comprovada: nao</span><div class='ftitle'>Sessao de &#x27;aluno&#x27; a partir de 10.20.30.44 reconstruida com 2 processo(s)</div></div><div class='chips'><span class='chip corr'>correlacao: <b>log + processo + usuario</b></span><span class='chip'>categoria: <b>Reconstrucao temporal</b></span><span class='chip'>id: <b>144ead3344a7</b></span><span class='chip'>fontes: <b>2</b></span></div><div class='block b-evid'><div class='h'>Evidencia &mdash; o que foi observado</div><div class='evi'><span class='kind k-log'>log</span>sshd aceitou autenticacao de &#x27;aluno&#x27; vinda de 10.20.30.44 por publickey<div class='src'>fonte: dataset::journal.log:linha 6</div><div class='raw'>Sep 14 09:25:00 srv-app-01 sshd[2630]: Accepted publickey for aluno from 10.20.30.44 port 51518 ssh2</div></div><div class='evi'><span class='kind k-process'>process</span>pid 2630 de &#x27;aluno&#x27; na cadeia da sessao<div class='src'>fonte: dataset::processes.csv:linha 7</div><div class='raw'>pid=2630 ppid=612 user=aluno cmd=sshd: aluno@pts/0</div></div><div class='evi'><span class='kind k-process'>process</span>pid 2638 de &#x27;aluno&#x27; na cadeia da sessao<div class='src'>fonte: dataset::processes.csv:linha 8</div><div class='raw'>pid=2638 ppid=2630 user=aluno cmd=/bin/bash</div></div><div class='evi'><span class='kind k-user'>user</span>&#x27;aluno&#x27; e a identidade sob a qual esses processos executam<div class='src'>fonte: dataset::processes.csv:linha 7</div><div class='raw'>aluno (uid=None)</div></div></div><div class='block b-interp'><div class='h'>Interpretacao &mdash; significado tecnico</div>O registro de autenticacao e o inventario de processos foram costurados para reconstruir o que a sessao de &#x27;aluno&#x27; fez apos o login: origem 10.20.30.44, metodo publickey, 2 processo(s) atribuiveis. E linha de base de atividade, nao achado de risco. Dentro da sessao houve execucao de interpretador ou ferramenta de rede, o que merece leitura de contexto.</div><div class='block b-hyp'><div class='h'>Hipotese &mdash; explicacao possivel, nao comprovada</div>Hipotese: acesso administrativo legitimo. A reconstrucao responde &#x27;o que aconteceu depois do login&#x27;, nao se o acesso foi indevido.</div><div class='block b-path'><div class='h'>Cadeia reconstruida</div><div class='path'><div class='step'>2026-09-14T09:25:00 sshd registra login de &#x27;aluno&#x27; de 10.20.30.44</div><div class='step'>pid 2630 (aluno) sshd: aluno@pts/0</div><div class='step'>pid 2638 (aluno) /bin/bash</div></div></div><div class='block b-miss'><div class='h'>Evidencia ausente &mdash; necessaria para confirmar ou rejeitar</div><ul class='tight'><li>Se 10.20.30.44 pertence a faixa autorizada de administracao.</li><li>Historico de comandos executados na sessao.</li></ul></div><div class='block b-fp'><div class='h'>Possibilidade de falso positivo</div><ul class='tight'><li>Processos antigos do mesmo usuario entram na lista quando o PID do sshd nao pode ser ancorado.</li></ul></div><div class='conf'>Base da confianca: 4 evidencia(s) em 3 dimensao(oes) (log, process, user) vindas de 2 fonte(s) independente(s): dataset::journal.log, dataset::processes.csv.</div></div>
+<div class='finding low'><div class='fhead'><span class='badge b-low'>BAIXA</span><span class='rule'>EI-R09</span><span class='rule'>risco 27/100</span><span class='rule'>confianca media</span><span class='rule' title='A ferramenta nunca afirma exploracao'>exploracao comprovada: nao</span><div class='ftitle'>backup-agent.service -&gt; pid 2417 -&gt; curl (pid 2421)</div></div><div class='chips'><span class='chip corr'>correlacao: <b>servico + processo + PPID</b></span><span class='chip'>categoria: <b>Contexto de execucao</b></span><span class='chip'>id: <b>b1d8ec6c30ce</b></span><span class='chip'>fontes: <b>2</b></span></div><div class='block b-evid'><div class='h'>Evidencia &mdash; o que foi observado</div><div class='evi'><span class='kind k-service'>service</span>&#x27;backup-agent.service&#x27; ativa como root<div class='src'>fonte: dataset::services.txt:linha 4</div><div class='raw'>backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh</div></div><div class='evi'><span class='kind k-process'>process</span>pid 2417 corresponde ao ExecStart<div class='src'>fonte: dataset::processes.csv:linha 5</div><div class='raw'>pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh</div></div><div class='evi'><span class='kind k-process'>process</span>Filho pid 2421 (PPID 2417) executa &#x27;/usr/bin/curl -fsS https://updates.example.invalid/status&#x27;<div class='src'>fonte: dataset::processes.csv:linha 6</div><div class='raw'>pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS https://updates.example.invalid/status</div></div></div><div class='block b-interp'><div class='h'>Interpretacao &mdash; significado tecnico</div>A cadeia servico -&gt; processo -&gt; subprocesso foi reconstruida pelo PPID. Um servico privilegiado gera subprocessos que falam com a rede: qualquer entrada que o servico processe pode influenciar os argumentos desses subprocessos.</div><div class='block b-hyp'><div class='h'>Hipotese &mdash; explicacao possivel, nao comprovada</div>Hipotese: comportamento previsto do agente (publicar metricas, baixar atualizacao, enviar backup). A cadeia por si nao indica abuso.</div><div class='block b-path'><div class='h'>Cadeia reconstruida</div><div class='path'><div class='step'>unidade &#x27;backup-agent.service&#x27; (User=root)</div><div class='step'>pid 2417 /bin/bash /opt/backup/backup.sh</div><div class='step'>pid 2421 /usr/bin/curl -fsS https://updates.example.invalid/status</div></div></div><div class='block b-miss'><div class='h'>Evidencia ausente &mdash; necessaria para confirmar ou rejeitar</div><ul class='tight'><li>Se os argumentos do subprocesso derivam de entrada externa (risco de injecao de comando).</li><li>Configuracao do servico.</li></ul></div><div class='block b-fp'><div class='h'>Possibilidade de falso positivo</div><ul class='tight'><li>Praticamente todo agente de monitoramento apresenta esta cadeia.</li></ul></div><div class='conf'>Base da confianca: 3 evidencia(s) em 2 dimensao(oes) (service, process) vindas de 2 fonte(s) independente(s): dataset::services.txt, dataset::processes.csv.</div></div>
+<h2 id='sec-linha-do-tempo'><span class='n'>4</span>Linha do tempo correlacionada</h2>
+<table><thead><tr><th>Instante</th><th>Tipo</th><th>Entidade</th><th>Detalhe</th><th>Fonte</th></tr></thead><tbody>
+<tr><td class='mono'>2026-09-13 08:59:00</td><td class='tl-file'>file</td><td class='mono'>mtime backup.sh</td><td>&#x27;/opt/backup/backup.sh&#x27; modificado (modo 0777, root:root)</td><td class='mono' style='color:var(--fg3)'>dataset::permissions.csv:linha 3</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:00</td><td class='tl-log'>log</td><td class='mono'>systemd[1]</td><td>Started ssh.service - OpenBSD Secure Shell server.</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 1</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:00</td><td class='tl-process'>process</td><td class='mono'>pid 1 (root)</td><td>processo observado: /sbin/init</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 2</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:02</td><td class='tl-process'>process</td><td class='mono'>pid 612 (root)</td><td>processo observado: /usr/sbin/sshd -D</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 3</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:04</td><td class='tl-process'>process</td><td class='mono'>pid 821 (root)</td><td>processo observado: /usr/sbin/cron -f</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 4</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:06</td><td class='tl-process'>process</td><td class='mono'>pid 2417 (root)</td><td>processo observado: /bin/bash /opt/backup/backup.sh</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 5</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:08</td><td class='tl-process'>process</td><td class='mono'>pid 2421 (root)</td><td>processo observado: /usr/bin/curl -fsS https://updates.example.invalid/status</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 6</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:10</td><td class='tl-process'>process</td><td class='mono'>pid 2630 (aluno)</td><td>processo observado: sshd: aluno@pts/0</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 7</td></tr>
+<tr><td class='mono'>2026-09-14 09:00:12</td><td class='tl-process'>process</td><td class='mono'>pid 2638 (aluno)</td><td>processo observado: /bin/bash</td><td class='mono' style='color:var(--fg3)'>dataset::processes.csv:linha 8</td></tr>
+<tr><td class='mono'>2026-09-14 09:02:00</td><td class='tl-log'>log</td><td class='mono'>systemd[1]</td><td>Starting backup-agent.service - Internal Backup Agent...</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 2</td></tr>
+<tr><td class='mono'>2026-09-14 09:02:03</td><td class='tl-log'>log</td><td class='mono'>backup-agent[2417]</td><td>backup job started</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 3</td></tr>
+<tr><td class='mono'>2026-09-14 09:02:04</td><td class='tl-log'>log</td><td class='mono'>backup-agent[2417]</td><td>checking remote status endpoint</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 4</td></tr>
+<tr><td class='mono'>2026-09-14 09:02:05</td><td class='tl-log'>log</td><td class='mono'>backup-agent[2417]</td><td>backup completed with status=OK</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 5</td></tr>
+<tr><td class='mono'>2026-09-14 09:25:00</td><td class='tl-log'>log</td><td class='mono'>sshd[2630]</td><td>Accepted publickey for aluno from 10.20.30.44 port 51518 ssh2</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 6</td></tr>
+<tr><td class='mono'>2026-09-14 09:25:02</td><td class='tl-log'>log</td><td class='mono'>systemd-logind[640]</td><td>New session 9 of user aluno.</td><td class='mono' style='color:var(--fg3)'>dataset::journal.log:linha 7</td></tr>
+</tbody></table>
+<h2 id='sec-cobertura'><span class='n'>5</span>Cobertura, notas e limitacoes</h2>
+<div class='note'><b>Regras:</b> 15 registradas, 15 executadas.<br><span class='mono' style='font-size:12px'>EI-R01, EI-R02, EI-R03, EI-R04, EI-R05, EI-R06, EI-R07, EI-R08, EI-R09, EI-R10, EI-R11, EI-R12, EI-R13, EI-R14, EI-R15</span></div>
+<div class='note'><b>Limitacoes declaradas do escopo:</b><ul class='tight'>
+<li>Analise baseada em um snapshot pontual: comportamento anterior ou posterior a coleta nao e observado, e PIDs podem ser reaproveitados.</li>
+<li>A ferramenta nao inspeciona o conteudo dos arquivos nem executa analise de binarios; decide a partir de metadados e das relacoes entre eles.</li>
+<li>Escopo adotado: processos, permissoes, servicos e logs do sistema. Conexoes de rede, contas do sistema e arquivos abertos nao sao coletados - uma URL em linha de comando nao prova que houve conexao.</li>
+<li>ACLs POSIX estendidas, atributos, capabilities e politicas MAC (SELinux/AppArmor) nao sao lidos: um recurso pode estar mais protegido do que o modo octal sugere.</li>
+<li>Sem privilegio de root, cmdline e executavel de processos de outros usuarios ficam incompletos; a coleta registra isso nas notas.</li>
+<li>Namespaces de containers nao sao percorridos.</li>
+<li>A ferramenta nao conclui a existencia de comprometimento: todo achado carrega &#x27;exploracao_comprovada: false&#x27;.</li>
+</ul></div>
+<footer>A ferramenta produz evidencias, interpretacoes e hipoteses. A conclusao sobre a existencia de um incidente e uma decisao do analista. Bundle <span class='mono'>ei-evidence-bundle/1.0</span>.</footer>
+</div></body></html>

@@ -1,0 +1,277 @@
+
+====================================================================================================
+  ENDPOINT INVESTIGATOR  v1.0.0
+  Pipeline: COLETA -> NORMALIZACAO -> CORRELACAO -> EVIDENCIAS -> HIPOTESES -> RESULTADO
+  Modelo (Aula 2): OBSERVE -> HIPOTESE -> EVIDENCIAS -> CONCLUSAO
+====================================================================================================
+
+  Host                         srv-app-01
+  Coletor                      dataset
+  Origem                       /home/kaua/Documents/7_semestre/TecHacker/endpoint-investigator/datasets/04-correlacao
+  Gerado em                    2026-10-04T18:34:49-03:00
+
+  INVENTARIO COLETADO
+    [ok] processos                7
+    [ok] arquivos/permissoes      4
+    [ok] servicos                 3
+    [ok] eventos de log           7
+    [ok] identidades observadas   2
+
+  GRAFO DE CORRELACAO
+    23 entidades, 32 relacoes
+    contido-em=2, emitido-por=3, executa-como=10, gerencia=3, pai-de=6, refere-pid=6, usa-script=2
+
+  RESUMO DOS ACHADOS
+    ALTA: 1   MEDIA: 2   BAIXA: 2
+    total: 5   risco maximo: 86/100
+
+====================================================================================================
+  ACHADOS - EVIDENCIA / INTERPRETACAO / HIPOTESE / EVIDENCIA AUSENTE
+====================================================================================================
+
+ ALTA  [EI-R01] backup-agent.service (root) executa /opt/backup/backup.sh, gravavel por usuario nao privilegiado
+  risco 86/100   confianca alta   categoria Relacao de privilegio
+  correlacao servico + permissao + usuario   id f6a9d292794f
+
+  EVIDENCIA (observado)
+    - [service] Unidade 'backup-agent.service' esta running com User=root e
+      ExecStart=/bin/bash /opt/backup/backup.sh
+      fonte: dataset::services.txt:linha 4
+      bruto: backup-agent.service active=running user=root ExecStart=/bin/bash
+      /opt/backup/backup.sh
+    - [file] '/opt/backup/backup.sh' tem modo 0777 (world-writable), dono root:root
+      fonte: dataset::permissions.csv:linha 3
+      bruto: 0777 root:root /opt/backup/backup.sh (mtime=2026-09-13T08:59:00-03:00)
+    - [process] pid 2417 (root) corresponde ao ExecStart da unidade
+      fonte: dataset::processes.csv:linha 5
+      bruto: pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh
+
+  INTERPRETACAO (significado tecnico)
+    'backup-agent.service' executa como 'root' e depende de '/opt/backup/backup.sh', que pode
+    ser alterado por qualquer usuario local (modo 0777 concede escrita a 'outros'). Quem
+    altera o conteudo determina o que sera executado com esse privilegio na proxima execucao
+    da unidade.
+
+  HIPOTESE (explicacao possivel, nao comprovada)
+    Hipotese: alguem fora do escopo do servico substitui '/opt/backup/backup.sh' e obtem
+    execucao como root. As evidencias descrevem a viabilidade da relacao, nao que isso tenha
+    ocorrido.
+
+  CADEIA RECONSTRUIDA
+    qualquer usuario local altera '/opt/backup/backup.sh'
+     -> unidade 'backup-agent.service' executa '/opt/backup/backup.sh'
+     -> codigo passa a executar como 'root'
+
+  EVIDENCIA AUSENTE (necessaria para concluir)
+    ? Historico de alteracao e hash conhecido-bom de '/opt/backup/backup.sh'.
+    ? Quais usuarios nao privilegiados tem sessao nesta maquina.
+    ? ACL estendida e politica MAC, que podem restringir a escrita apesar do modo observado.
+
+  POSSIBILIDADE DE FALSO POSITIVO
+    ! O modo pode vir de um instalador, com o recurso protegido por ACL, SELinux/AppArmor ou
+      montagem read-only.
+
+  base da confianca: 3 evidencia(s) em 3 dimensao(oes) (service, file, process) vindas de 3 fonte(s) independente(s): dataset::services.txt, dataset::permissions.csv, dataset::processes.csv.
+  ................................................................................................
+
+ MEDIA  [EI-R13] pid 2421 (root) inicia trafego externo para updates.example.invalid
+  risco 42/100   confianca media   categoria Contexto de execucao
+  correlacao processo + usuario + servico/log   id 8de5f23c9708
+
+  EVIDENCIA (observado)
+    - [process] pid 2421 executa 'curl' como 'root' com destino updates.example.invalid
+      fonte: dataset::processes.csv:linha 6
+      bruto: pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS
+      https://updates.example.invalid/status
+    - [process] Pai pid 2417 (root): /bin/bash /opt/backup/backup.sh
+      fonte: dataset::processes.csv:linha 5
+      bruto: pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh
+    - [service] 'backup-agent.service' (root) explica a cadeia de execucao do pid 2421
+      fonte: dataset::services.txt:linha 4
+      bruto: backup-agent.service active=running user=root ExecStart=/bin/bash
+      /opt/backup/backup.sh
+
+  INTERPRETACAO (significado tecnico)
+    Processo com privilegio ('root') invoca 'curl' com destino fora do host
+    (updates.example.invalid). O destino vem dos argumentos do comando, nao de coleta de rede.
+    O relevante nao e a conexao existir, e o contexto: saida originada de identidade
+    privilegiada amplia o impacto de um canal comprometido.
+
+  HIPOTESE (explicacao possivel, nao comprovada)
+    Hipotese: agente de telemetria, atualizacao ou backup - sustentada por 'backup-
+    agent.service'. A ferramenta NAO classifica a conexao como C2 ou malware: destino,
+    frequencia e conteudo do trafego nao estao entre as fontes coletadas.
+
+  EVIDENCIA AUSENTE (necessaria para concluir)
+    ? Resolucao DNS e reputacao de 'updates.example.invalid'.
+    ? Se a conexao chegou a ser estabelecida, e com que volume.
+
+  POSSIBILIDADE DE FALSO POSITIVO
+    ! Agentes de monitoramento e atualizadores fazem exatamente isso.
+    ! Uma URL em linha de comando nao prova que houve conexao.
+
+  base da confianca: 3 evidencia(s) em 2 dimensao(oes) (process, service) vindas de 2 fonte(s) independente(s): dataset::processes.csv, dataset::services.txt.
+  ................................................................................................
+
+ MEDIA  [EI-R05] Binario SUID /usr/local/bin/report-sync (root:root)
+  risco 32/100   confianca baixa   categoria Superficie de privilegio
+  correlacao permissao + processo/servico   id dc6d871b7c83
+
+  EVIDENCIA (observado)
+    - [file] '/usr/local/bin/report-sync' com modo 4755 (setuid), dono root:root
+      fonte: dataset::permissions.csv:linha 5
+      bruto: 4755 root:root /usr/local/bin/report-sync (mtime=2026-09-11T08:57:00-03:00)
+
+  INTERPRETACAO (significado tecnico)
+    '/usr/local/bin/report-sync' carrega o bit SUID: executa com a identidade do dono
+    ('root'), nao com a de quem o invoca. Qualquer falha de tratamento de entrada nesse
+    binario e explorada com esse privilegio.
+
+  HIPOTESE (explicacao possivel, nao comprovada)
+    Hipotese: bit definido pelo empacotador da distribuicao, como em sudo, passwd e mount. A
+    presenca do bit nao caracteriza vulnerabilidade nem comprometimento.
+
+  EVIDENCIA AUSENTE (necessaria para concluir)
+    ? Hash de '/usr/local/bin/report-sync' comparado ao pacote de origem (dpkg -V / rpm -V).
+    ? Se o binario e conhecido por permitir escape de privilegio quando SUID.
+
+  POSSIBILIDADE DE FALSO POSITIVO
+    ! Binarios SUID de sistema sao esperados em qualquer instalacao.
+
+  base da confianca: 1 evidencia(s) em 1 dimensao(oes) (file) vindas de 1 fonte(s) independente(s): dataset::permissions.csv.
+  ................................................................................................
+
+ BAIXA  [EI-R14] Sessao de 'aluno' a partir de 10.20.30.44 reconstruida com 2 processo(s)
+  risco 31/100   confianca alta   categoria Reconstrucao temporal
+  correlacao log + processo + usuario   id 144ead3344a7
+
+  EVIDENCIA (observado)
+    - [log] sshd aceitou autenticacao de 'aluno' vinda de 10.20.30.44 por publickey
+      fonte: dataset::journal.log:linha 6
+      bruto: Sep 14 09:25:00 srv-app-01 sshd[2630]: Accepted publickey for aluno from
+      10.20.30.44 port 51518 ssh2
+    - [process] pid 2630 de 'aluno' na cadeia da sessao
+      fonte: dataset::processes.csv:linha 7
+      bruto: pid=2630 ppid=612 user=aluno cmd=sshd: aluno@pts/0
+    - [process] pid 2638 de 'aluno' na cadeia da sessao
+      fonte: dataset::processes.csv:linha 8
+      bruto: pid=2638 ppid=2630 user=aluno cmd=/bin/bash
+    - [user] 'aluno' e a identidade sob a qual esses processos executam
+      fonte: dataset::processes.csv:linha 7
+      bruto: aluno (uid=None)
+
+  INTERPRETACAO (significado tecnico)
+    O registro de autenticacao e o inventario de processos foram costurados para reconstruir o
+    que a sessao de 'aluno' fez apos o login: origem 10.20.30.44, metodo publickey, 2
+    processo(s) atribuiveis. E linha de base de atividade, nao achado de risco. Dentro da
+    sessao houve execucao de interpretador ou ferramenta de rede, o que merece leitura de
+    contexto.
+
+  HIPOTESE (explicacao possivel, nao comprovada)
+    Hipotese: acesso administrativo legitimo. A reconstrucao responde 'o que aconteceu depois
+    do login', nao se o acesso foi indevido.
+
+  CADEIA RECONSTRUIDA
+    2026-09-14T09:25:00 sshd registra login de 'aluno' de 10.20.30.44
+     -> pid 2630 (aluno) sshd: aluno@pts/0
+     -> pid 2638 (aluno) /bin/bash
+
+  EVIDENCIA AUSENTE (necessaria para concluir)
+    ? Se 10.20.30.44 pertence a faixa autorizada de administracao.
+    ? Historico de comandos executados na sessao.
+
+  POSSIBILIDADE DE FALSO POSITIVO
+    ! Processos antigos do mesmo usuario entram na lista quando o PID do sshd nao pode ser
+      ancorado.
+
+  base da confianca: 4 evidencia(s) em 3 dimensao(oes) (log, process, user) vindas de 2 fonte(s) independente(s): dataset::journal.log, dataset::processes.csv.
+  ................................................................................................
+
+ BAIXA  [EI-R09] backup-agent.service -> pid 2417 -> curl (pid 2421)
+  risco 27/100   confianca media   categoria Contexto de execucao
+  correlacao servico + processo + PPID   id b1d8ec6c30ce
+
+  EVIDENCIA (observado)
+    - [service] 'backup-agent.service' ativa como root
+      fonte: dataset::services.txt:linha 4
+      bruto: backup-agent.service active=running user=root ExecStart=/bin/bash
+      /opt/backup/backup.sh
+    - [process] pid 2417 corresponde ao ExecStart
+      fonte: dataset::processes.csv:linha 5
+      bruto: pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh
+    - [process] Filho pid 2421 (PPID 2417) executa '/usr/bin/curl -fsS
+      https://updates.example.invalid/status'
+      fonte: dataset::processes.csv:linha 6
+      bruto: pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS
+      https://updates.example.invalid/status
+
+  INTERPRETACAO (significado tecnico)
+    A cadeia servico -> processo -> subprocesso foi reconstruida pelo PPID. Um servico
+    privilegiado gera subprocessos que falam com a rede: qualquer entrada que o servico
+    processe pode influenciar os argumentos desses subprocessos.
+
+  HIPOTESE (explicacao possivel, nao comprovada)
+    Hipotese: comportamento previsto do agente (publicar metricas, baixar atualizacao, enviar
+    backup). A cadeia por si nao indica abuso.
+
+  CADEIA RECONSTRUIDA
+    unidade 'backup-agent.service' (User=root)
+     -> pid 2417 /bin/bash /opt/backup/backup.sh
+     -> pid 2421 /usr/bin/curl -fsS https://updates.example.invalid/status
+
+  EVIDENCIA AUSENTE (necessaria para concluir)
+    ? Se os argumentos do subprocesso derivam de entrada externa (risco de injecao de
+      comando).
+    ? Configuracao do servico.
+
+  POSSIBILIDADE DE FALSO POSITIVO
+    ! Praticamente todo agente de monitoramento apresenta esta cadeia.
+
+  base da confianca: 3 evidencia(s) em 2 dimensao(oes) (service, process) vindas de 2 fonte(s) independente(s): dataset::services.txt, dataset::processes.csv.
+  ................................................................................................
+
+====================================================================================================
+  LINHA DO TEMPO CORRELACIONADA
+====================================================================================================
+  2026-09-13 08:59:00  FILE  mtime backup.sh  '/opt/backup/backup.sh' modificado (modo 0777, r
+  2026-09-14 09:00:00  LOG  systemd[1]  Started ssh.service - OpenBSD Secure Shell serve
+  2026-09-14 09:00:00  PROC  pid 1 (root)  processo observado: /sbin/init
+  2026-09-14 09:00:02  PROC  pid 612 (root)  processo observado: /usr/sbin/sshd -D
+  2026-09-14 09:00:04  PROC  pid 821 (root)  processo observado: /usr/sbin/cron -f
+  2026-09-14 09:00:06  PROC  pid 2417 (root)  processo observado: /bin/bash /opt/backup/backup
+  2026-09-14 09:00:08  PROC  pid 2421 (root)  processo observado: /usr/bin/curl -fsS https://u
+  2026-09-14 09:00:10  PROC  pid 2630 (aluno)  processo observado: sshd: aluno@pts/0
+  2026-09-14 09:00:12  PROC  pid 2638 (aluno)  processo observado: /bin/bash
+  2026-09-14 09:02:00  LOG  systemd[1]  Starting backup-agent.service - Internal Backup 
+  2026-09-14 09:02:03  LOG  backup-agent[2417]  backup job started
+  2026-09-14 09:02:04  LOG  backup-agent[2417]  checking remote status endpoint
+  2026-09-14 09:02:05  LOG  backup-agent[2417]  backup completed with status=OK
+  2026-09-14 09:25:00  LOG  sshd[2630]  Accepted publickey for aluno from 10.20.30.44 po
+  2026-09-14 09:25:02  LOG  systemd-logind[640]  New session 9 of user aluno.
+
+====================================================================================================
+  COBERTURA DA ANALISE
+====================================================================================================
+  regras registradas: 15   executadas: 15
+
+  LIMITACOES DECLARADAS DO ESCOPO
+    - Analise baseada em um snapshot pontual: comportamento anterior ou posterior a coleta nao
+      e observado, e PIDs podem ser reaproveitados.
+    - A ferramenta nao inspeciona o conteudo dos arquivos nem executa analise de binarios;
+      decide a partir de metadados e das relacoes entre eles.
+    - Escopo adotado: processos, permissoes, servicos e logs do sistema. Conexoes de rede,
+      contas do sistema e arquivos abertos nao sao coletados - uma URL em linha de comando nao
+      prova que houve conexao.
+    - ACLs POSIX estendidas, atributos, capabilities e politicas MAC (SELinux/AppArmor) nao
+      sao lidos: um recurso pode estar mais protegido do que o modo octal sugere.
+    - Sem privilegio de root, cmdline e executavel de processos de outros usuarios ficam
+      incompletos; a coleta registra isso nas notas.
+    - Namespaces de containers nao sao percorridos.
+    - A ferramenta nao conclui a existencia de comprometimento: todo achado carrega
+      'exploracao_comprovada: false'.
+
+====================================================================================================
+  Esta ferramenta produz evidencias e hipoteses. A conclusao sobre a existencia de um
+  incidente e uma decisao do analista.
+====================================================================================================
+

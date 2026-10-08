@@ -1,0 +1,890 @@
+{
+  "schema_version": "ei-evidence-bundle/1.0",
+  "tool": "endpoint-investigator",
+  "tool_version": "1.0.0",
+  "host": "srv-app-01",
+  "generated_at": "2026-10-04T18:34:49-03:00",
+  "collector": "dataset",
+  "origin": "/home/kaua/Documents/7_semestre/TecHacker/endpoint-investigator/datasets/04-correlacao",
+  "inventory": {
+    "processes": 7,
+    "files": 4,
+    "services": 3,
+    "logs": 7,
+    "users": 2
+  },
+  "summary": {
+    "info": 0,
+    "baixa": 2,
+    "media": 2,
+    "alta": 1,
+    "total": 5
+  },
+  "max_risk_score": 86,
+  "findings": [
+    {
+      "rule_id": "EI-R01",
+      "fingerprint": "f6a9d292794f",
+      "title": "backup-agent.service (root) executa /opt/backup/backup.sh, gravavel por usuario nao privilegiado",
+      "severity": "alta",
+      "risk_score": 86,
+      "exploracao_comprovada": false,
+      "confidence": "alta",
+      "confidence_reason": "3 evidencia(s) em 3 dimensao(oes) (service, file, process) vindas de 3 fonte(s) independente(s): dataset::services.txt, dataset::permissions.csv, dataset::processes.csv.",
+      "category": "Relacao de privilegio",
+      "correlation": "servico + permissao + usuario",
+      "entities": [
+        "service:backup-agent.service",
+        "file:/opt/backup/backup.sh",
+        "process:2417"
+      ],
+      "attack_path": [
+        "qualquer usuario local altera '/opt/backup/backup.sh'",
+        "unidade 'backup-agent.service' executa '/opt/backup/backup.sh'",
+        "codigo passa a executar como 'root'"
+      ],
+      "evidence": [
+        {
+          "kind": "service",
+          "entity": "service:backup-agent.service",
+          "observed": "Unidade 'backup-agent.service' esta running com User=root e ExecStart=/bin/bash /opt/backup/backup.sh",
+          "raw": "backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "services.txt",
+            "locator": "linha 4"
+          }
+        },
+        {
+          "kind": "file",
+          "entity": "file:/opt/backup/backup.sh",
+          "observed": "'/opt/backup/backup.sh' tem modo 0777 (world-writable), dono root:root",
+          "raw": "0777 root:root /opt/backup/backup.sh (mtime=2026-09-13T08:59:00-03:00)",
+          "source": {
+            "collector": "dataset",
+            "artifact": "permissions.csv",
+            "locator": "linha 3"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2417",
+          "observed": "pid 2417 (root) corresponde ao ExecStart da unidade",
+          "raw": "pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 5"
+          }
+        }
+      ],
+      "interpretation": "'backup-agent.service' executa como 'root' e depende de '/opt/backup/backup.sh', que pode ser alterado por qualquer usuario local (modo 0777 concede escrita a 'outros'). Quem altera o conteudo determina o que sera executado com esse privilegio na proxima execucao da unidade.",
+      "hypothesis": "Hipotese: alguem fora do escopo do servico substitui '/opt/backup/backup.sh' e obtem execucao como root. As evidencias descrevem a viabilidade da relacao, nao que isso tenha ocorrido.",
+      "missing_evidence": [
+        "Historico de alteracao e hash conhecido-bom de '/opt/backup/backup.sh'.",
+        "Quais usuarios nao privilegiados tem sessao nesta maquina.",
+        "ACL estendida e politica MAC, que podem restringir a escrita apesar do modo observado."
+      ],
+      "false_positives": [
+        "O modo pode vir de um instalador, com o recurso protegido por ACL, SELinux/AppArmor ou montagem read-only."
+      ]
+    },
+    {
+      "rule_id": "EI-R13",
+      "fingerprint": "8de5f23c9708",
+      "title": "pid 2421 (root) inicia trafego externo para updates.example.invalid",
+      "severity": "media",
+      "risk_score": 42,
+      "exploracao_comprovada": false,
+      "confidence": "media",
+      "confidence_reason": "3 evidencia(s) em 2 dimensao(oes) (process, service) vindas de 2 fonte(s) independente(s): dataset::processes.csv, dataset::services.txt.",
+      "category": "Contexto de execucao",
+      "correlation": "processo + usuario + servico/log",
+      "entities": [
+        "process:2421",
+        "service:backup-agent.service"
+      ],
+      "attack_path": [],
+      "evidence": [
+        {
+          "kind": "process",
+          "entity": "process:2421",
+          "observed": "pid 2421 executa 'curl' como 'root' com destino updates.example.invalid",
+          "raw": "pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS https://updates.example.invalid/status",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 6"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2417",
+          "observed": "Pai pid 2417 (root): /bin/bash /opt/backup/backup.sh",
+          "raw": "pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 5"
+          }
+        },
+        {
+          "kind": "service",
+          "entity": "service:backup-agent.service",
+          "observed": "'backup-agent.service' (root) explica a cadeia de execucao do pid 2421",
+          "raw": "backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "services.txt",
+            "locator": "linha 4"
+          }
+        }
+      ],
+      "interpretation": "Processo com privilegio ('root') invoca 'curl' com destino fora do host (updates.example.invalid). O destino vem dos argumentos do comando, nao de coleta de rede. O relevante nao e a conexao existir, e o contexto: saida originada de identidade privilegiada amplia o impacto de um canal comprometido.",
+      "hypothesis": "Hipotese: agente de telemetria, atualizacao ou backup - sustentada por 'backup-agent.service'. A ferramenta NAO classifica a conexao como C2 ou malware: destino, frequencia e conteudo do trafego nao estao entre as fontes coletadas.",
+      "missing_evidence": [
+        "Resolucao DNS e reputacao de 'updates.example.invalid'.",
+        "Se a conexao chegou a ser estabelecida, e com que volume."
+      ],
+      "false_positives": [
+        "Agentes de monitoramento e atualizadores fazem exatamente isso.",
+        "Uma URL em linha de comando nao prova que houve conexao."
+      ]
+    },
+    {
+      "rule_id": "EI-R05",
+      "fingerprint": "dc6d871b7c83",
+      "title": "Binario SUID /usr/local/bin/report-sync (root:root)",
+      "severity": "media",
+      "risk_score": 32,
+      "exploracao_comprovada": false,
+      "confidence": "baixa",
+      "confidence_reason": "1 evidencia(s) em 1 dimensao(oes) (file) vindas de 1 fonte(s) independente(s): dataset::permissions.csv.",
+      "category": "Superficie de privilegio",
+      "correlation": "permissao + processo/servico",
+      "entities": [
+        "file:/usr/local/bin/report-sync"
+      ],
+      "attack_path": [],
+      "evidence": [
+        {
+          "kind": "file",
+          "entity": "file:/usr/local/bin/report-sync",
+          "observed": "'/usr/local/bin/report-sync' com modo 4755 (setuid), dono root:root",
+          "raw": "4755 root:root /usr/local/bin/report-sync (mtime=2026-09-11T08:57:00-03:00)",
+          "source": {
+            "collector": "dataset",
+            "artifact": "permissions.csv",
+            "locator": "linha 5"
+          }
+        }
+      ],
+      "interpretation": "'/usr/local/bin/report-sync' carrega o bit SUID: executa com a identidade do dono ('root'), nao com a de quem o invoca. Qualquer falha de tratamento de entrada nesse binario e explorada com esse privilegio.",
+      "hypothesis": "Hipotese: bit definido pelo empacotador da distribuicao, como em sudo, passwd e mount. A presenca do bit nao caracteriza vulnerabilidade nem comprometimento.",
+      "missing_evidence": [
+        "Hash de '/usr/local/bin/report-sync' comparado ao pacote de origem (dpkg -V / rpm -V).",
+        "Se o binario e conhecido por permitir escape de privilegio quando SUID."
+      ],
+      "false_positives": [
+        "Binarios SUID de sistema sao esperados em qualquer instalacao."
+      ]
+    },
+    {
+      "rule_id": "EI-R14",
+      "fingerprint": "144ead3344a7",
+      "title": "Sessao de 'aluno' a partir de 10.20.30.44 reconstruida com 2 processo(s)",
+      "severity": "baixa",
+      "risk_score": 31,
+      "exploracao_comprovada": false,
+      "confidence": "alta",
+      "confidence_reason": "4 evidencia(s) em 3 dimensao(oes) (log, process, user) vindas de 2 fonte(s) independente(s): dataset::journal.log, dataset::processes.csv.",
+      "category": "Reconstrucao temporal",
+      "correlation": "log + processo + usuario",
+      "entities": [
+        "process:2630",
+        "process:2638",
+        "user:aluno"
+      ],
+      "attack_path": [
+        "2026-09-14T09:25:00 sshd registra login de 'aluno' de 10.20.30.44",
+        "pid 2630 (aluno) sshd: aluno@pts/0",
+        "pid 2638 (aluno) /bin/bash"
+      ],
+      "evidence": [
+        {
+          "kind": "log",
+          "entity": "log",
+          "observed": "sshd aceitou autenticacao de 'aluno' vinda de 10.20.30.44 por publickey",
+          "raw": "Sep 14 09:25:00 srv-app-01 sshd[2630]: Accepted publickey for aluno from 10.20.30.44 port 51518 ssh2",
+          "source": {
+            "collector": "dataset",
+            "artifact": "journal.log",
+            "locator": "linha 6"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2630",
+          "observed": "pid 2630 de 'aluno' na cadeia da sessao",
+          "raw": "pid=2630 ppid=612 user=aluno cmd=sshd: aluno@pts/0",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 7"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2638",
+          "observed": "pid 2638 de 'aluno' na cadeia da sessao",
+          "raw": "pid=2638 ppid=2630 user=aluno cmd=/bin/bash",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 8"
+          }
+        },
+        {
+          "kind": "user",
+          "entity": "user:aluno",
+          "observed": "'aluno' e a identidade sob a qual esses processos executam",
+          "raw": "aluno (uid=None)",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 7"
+          }
+        }
+      ],
+      "interpretation": "O registro de autenticacao e o inventario de processos foram costurados para reconstruir o que a sessao de 'aluno' fez apos o login: origem 10.20.30.44, metodo publickey, 2 processo(s) atribuiveis. E linha de base de atividade, nao achado de risco. Dentro da sessao houve execucao de interpretador ou ferramenta de rede, o que merece leitura de contexto.",
+      "hypothesis": "Hipotese: acesso administrativo legitimo. A reconstrucao responde 'o que aconteceu depois do login', nao se o acesso foi indevido.",
+      "missing_evidence": [
+        "Se 10.20.30.44 pertence a faixa autorizada de administracao.",
+        "Historico de comandos executados na sessao."
+      ],
+      "false_positives": [
+        "Processos antigos do mesmo usuario entram na lista quando o PID do sshd nao pode ser ancorado."
+      ]
+    },
+    {
+      "rule_id": "EI-R09",
+      "fingerprint": "b1d8ec6c30ce",
+      "title": "backup-agent.service -> pid 2417 -> curl (pid 2421)",
+      "severity": "baixa",
+      "risk_score": 27,
+      "exploracao_comprovada": false,
+      "confidence": "media",
+      "confidence_reason": "3 evidencia(s) em 2 dimensao(oes) (service, process) vindas de 2 fonte(s) independente(s): dataset::services.txt, dataset::processes.csv.",
+      "category": "Contexto de execucao",
+      "correlation": "servico + processo + PPID",
+      "entities": [
+        "service:backup-agent.service",
+        "process:2417",
+        "process:2421"
+      ],
+      "attack_path": [
+        "unidade 'backup-agent.service' (User=root)",
+        "pid 2417 /bin/bash /opt/backup/backup.sh",
+        "pid 2421 /usr/bin/curl -fsS https://updates.example.invalid/status"
+      ],
+      "evidence": [
+        {
+          "kind": "service",
+          "entity": "service:backup-agent.service",
+          "observed": "'backup-agent.service' ativa como root",
+          "raw": "backup-agent.service active=running user=root ExecStart=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "services.txt",
+            "locator": "linha 4"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2417",
+          "observed": "pid 2417 corresponde ao ExecStart",
+          "raw": "pid=2417 ppid=1 user=root cmd=/bin/bash /opt/backup/backup.sh",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 5"
+          }
+        },
+        {
+          "kind": "process",
+          "entity": "process:2421",
+          "observed": "Filho pid 2421 (PPID 2417) executa '/usr/bin/curl -fsS https://updates.example.invalid/status'",
+          "raw": "pid=2421 ppid=2417 user=root cmd=/usr/bin/curl -fsS https://updates.example.invalid/status",
+          "source": {
+            "collector": "dataset",
+            "artifact": "processes.csv",
+            "locator": "linha 6"
+          }
+        }
+      ],
+      "interpretation": "A cadeia servico -> processo -> subprocesso foi reconstruida pelo PPID. Um servico privilegiado gera subprocessos que falam com a rede: qualquer entrada que o servico processe pode influenciar os argumentos desses subprocessos.",
+      "hypothesis": "Hipotese: comportamento previsto do agente (publicar metricas, baixar atualizacao, enviar backup). A cadeia por si nao indica abuso.",
+      "missing_evidence": [
+        "Se os argumentos do subprocesso derivam de entrada externa (risco de injecao de comando).",
+        "Configuracao do servico."
+      ],
+      "false_positives": [
+        "Praticamente todo agente de monitoramento apresenta esta cadeia."
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "ts": "2026-09-13T08:59:00",
+      "label": "mtime backup.sh",
+      "detail": "'/opt/backup/backup.sh' modificado (modo 0777, root:root)",
+      "kind": "file",
+      "source": {
+        "collector": "dataset",
+        "artifact": "permissions.csv",
+        "locator": "linha 3"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:00",
+      "label": "systemd[1]",
+      "detail": "Started ssh.service - OpenBSD Secure Shell server.",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 1"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:00",
+      "label": "pid 1 (root)",
+      "detail": "processo observado: /sbin/init",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 2"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:02",
+      "label": "pid 612 (root)",
+      "detail": "processo observado: /usr/sbin/sshd -D",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 3"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:04",
+      "label": "pid 821 (root)",
+      "detail": "processo observado: /usr/sbin/cron -f",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 4"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:06",
+      "label": "pid 2417 (root)",
+      "detail": "processo observado: /bin/bash /opt/backup/backup.sh",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 5"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:08",
+      "label": "pid 2421 (root)",
+      "detail": "processo observado: /usr/bin/curl -fsS https://updates.example.invalid/status",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 6"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:10",
+      "label": "pid 2630 (aluno)",
+      "detail": "processo observado: sshd: aluno@pts/0",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 7"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:00:12",
+      "label": "pid 2638 (aluno)",
+      "detail": "processo observado: /bin/bash",
+      "kind": "process",
+      "source": {
+        "collector": "dataset",
+        "artifact": "processes.csv",
+        "locator": "linha 8"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:02:00",
+      "label": "systemd[1]",
+      "detail": "Starting backup-agent.service - Internal Backup Agent...",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 2"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:02:03",
+      "label": "backup-agent[2417]",
+      "detail": "backup job started",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 3"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:02:04",
+      "label": "backup-agent[2417]",
+      "detail": "checking remote status endpoint",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 4"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:02:05",
+      "label": "backup-agent[2417]",
+      "detail": "backup completed with status=OK",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 5"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:25:00",
+      "label": "sshd[2630]",
+      "detail": "Accepted publickey for aluno from 10.20.30.44 port 51518 ssh2",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 6"
+      }
+    },
+    {
+      "ts": "2026-09-14T09:25:02",
+      "label": "systemd-logind[640]",
+      "detail": "New session 9 of user aluno.",
+      "kind": "log",
+      "source": {
+        "collector": "dataset",
+        "artifact": "journal.log",
+        "locator": "linha 7"
+      }
+    }
+  ],
+  "graph": {
+    "stats": {
+      "nodes": 23,
+      "edges": 32,
+      "node_file": 4,
+      "node_log": 7,
+      "node_process": 7,
+      "node_service": 3,
+      "node_user": 2,
+      "edge_contido-em": 2,
+      "edge_emitido-por": 3,
+      "edge_executa-como": 10,
+      "edge_gerencia": 3,
+      "edge_pai-de": 6,
+      "edge_refere-pid": 6,
+      "edge_usa-script": 2
+    },
+    "nodes": [
+      {
+        "key": "user:root",
+        "kind": "user",
+        "label": "root"
+      },
+      {
+        "key": "user:aluno",
+        "kind": "user",
+        "label": "aluno"
+      },
+      {
+        "key": "process:1",
+        "kind": "process",
+        "label": "pid 1 init"
+      },
+      {
+        "key": "process:612",
+        "kind": "process",
+        "label": "pid 612 sshd"
+      },
+      {
+        "key": "process:821",
+        "kind": "process",
+        "label": "pid 821 cron"
+      },
+      {
+        "key": "process:2417",
+        "kind": "process",
+        "label": "pid 2417 bash"
+      },
+      {
+        "key": "process:2421",
+        "kind": "process",
+        "label": "pid 2421 curl"
+      },
+      {
+        "key": "process:2630",
+        "kind": "process",
+        "label": "pid 2630 sshd"
+      },
+      {
+        "key": "process:2638",
+        "kind": "process",
+        "label": "pid 2638 bash"
+      },
+      {
+        "key": "file:/opt/backup",
+        "kind": "file",
+        "label": "/opt/backup"
+      },
+      {
+        "key": "file:/opt/backup/backup.sh",
+        "kind": "file",
+        "label": "/opt/backup/backup.sh"
+      },
+      {
+        "key": "file:/opt/backup/config.ini",
+        "kind": "file",
+        "label": "/opt/backup/config.ini"
+      },
+      {
+        "key": "file:/usr/local/bin/report-sync",
+        "kind": "file",
+        "label": "/usr/local/bin/report-sync"
+      },
+      {
+        "key": "service:backup-agent.service",
+        "kind": "service",
+        "label": "backup-agent.service"
+      },
+      {
+        "key": "service:cron.service",
+        "kind": "service",
+        "label": "cron.service"
+      },
+      {
+        "key": "service:ssh.service",
+        "kind": "service",
+        "label": "ssh.service"
+      },
+      {
+        "key": "log:0",
+        "kind": "log",
+        "label": "Started ssh.service - OpenBSD Secure Shell server."
+      },
+      {
+        "key": "log:1",
+        "kind": "log",
+        "label": "Starting backup-agent.service - Internal Backup Agent..."
+      },
+      {
+        "key": "log:2",
+        "kind": "log",
+        "label": "backup job started"
+      },
+      {
+        "key": "log:3",
+        "kind": "log",
+        "label": "checking remote status endpoint"
+      },
+      {
+        "key": "log:4",
+        "kind": "log",
+        "label": "backup completed with status=OK"
+      },
+      {
+        "key": "log:5",
+        "kind": "log",
+        "label": "Accepted publickey for aluno from 10.20.30.44 port 51518 ssh"
+      },
+      {
+        "key": "log:6",
+        "kind": "log",
+        "label": "New session 9 of user aluno."
+      }
+    ],
+    "edges": [
+      {
+        "src": "process:1",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "campo user=root"
+      },
+      {
+        "src": "process:612",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "campo user=root"
+      },
+      {
+        "src": "process:1",
+        "rel": "pai-de",
+        "dst": "process:612",
+        "why": "ppid=1"
+      },
+      {
+        "src": "process:821",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "campo user=root"
+      },
+      {
+        "src": "process:1",
+        "rel": "pai-de",
+        "dst": "process:821",
+        "why": "ppid=1"
+      },
+      {
+        "src": "process:2417",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "campo user=root"
+      },
+      {
+        "src": "process:1",
+        "rel": "pai-de",
+        "dst": "process:2417",
+        "why": "ppid=1"
+      },
+      {
+        "src": "process:2421",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "campo user=root"
+      },
+      {
+        "src": "process:2417",
+        "rel": "pai-de",
+        "dst": "process:2421",
+        "why": "ppid=2417"
+      },
+      {
+        "src": "process:2630",
+        "rel": "executa-como",
+        "dst": "user:aluno",
+        "why": "campo user=aluno"
+      },
+      {
+        "src": "process:612",
+        "rel": "pai-de",
+        "dst": "process:2630",
+        "why": "ppid=612"
+      },
+      {
+        "src": "process:2638",
+        "rel": "executa-como",
+        "dst": "user:aluno",
+        "why": "campo user=aluno"
+      },
+      {
+        "src": "process:2630",
+        "rel": "pai-de",
+        "dst": "process:2638",
+        "why": "ppid=2630"
+      },
+      {
+        "src": "process:2417",
+        "rel": "usa-script",
+        "dst": "file:/opt/backup/backup.sh",
+        "why": "cmdline: /bin/bash /opt/backup/backup.sh"
+      },
+      {
+        "src": "service:backup-agent.service",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "User=root"
+      },
+      {
+        "src": "service:backup-agent.service",
+        "rel": "usa-script",
+        "dst": "file:/opt/backup/backup.sh",
+        "why": "ExecStart: /bin/bash /opt/backup/backup.sh"
+      },
+      {
+        "src": "service:backup-agent.service",
+        "rel": "gerencia",
+        "dst": "process:2417",
+        "why": "ExecStart casa com cmdline do pid 2417"
+      },
+      {
+        "src": "service:cron.service",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "User=root"
+      },
+      {
+        "src": "service:cron.service",
+        "rel": "gerencia",
+        "dst": "process:821",
+        "why": "ExecStart casa com cmdline do pid 821"
+      },
+      {
+        "src": "service:ssh.service",
+        "rel": "executa-como",
+        "dst": "user:root",
+        "why": "User=root"
+      },
+      {
+        "src": "service:ssh.service",
+        "rel": "gerencia",
+        "dst": "process:612",
+        "why": "ExecStart casa com cmdline do pid 612"
+      },
+      {
+        "src": "file:/opt/backup/backup.sh",
+        "rel": "contido-em",
+        "dst": "file:/opt/backup",
+        "why": "diretorio-pai"
+      },
+      {
+        "src": "file:/opt/backup/config.ini",
+        "rel": "contido-em",
+        "dst": "file:/opt/backup",
+        "why": "diretorio-pai"
+      },
+      {
+        "src": "log:0",
+        "rel": "refere-pid",
+        "dst": "process:1",
+        "why": "pid=1"
+      },
+      {
+        "src": "log:1",
+        "rel": "refere-pid",
+        "dst": "process:1",
+        "why": "pid=1"
+      },
+      {
+        "src": "log:2",
+        "rel": "refere-pid",
+        "dst": "process:2417",
+        "why": "pid=2417"
+      },
+      {
+        "src": "log:2",
+        "rel": "emitido-por",
+        "dst": "service:backup-agent.service",
+        "why": "programa=backup-agent"
+      },
+      {
+        "src": "log:3",
+        "rel": "refere-pid",
+        "dst": "process:2417",
+        "why": "pid=2417"
+      },
+      {
+        "src": "log:3",
+        "rel": "emitido-por",
+        "dst": "service:backup-agent.service",
+        "why": "programa=backup-agent"
+      },
+      {
+        "src": "log:4",
+        "rel": "refere-pid",
+        "dst": "process:2417",
+        "why": "pid=2417"
+      },
+      {
+        "src": "log:4",
+        "rel": "emitido-por",
+        "dst": "service:backup-agent.service",
+        "why": "programa=backup-agent"
+      },
+      {
+        "src": "log:5",
+        "rel": "refere-pid",
+        "dst": "process:2630",
+        "why": "pid=2630"
+      }
+    ],
+    "edges_truncated": 0
+  },
+  "coverage": {
+    "rules_total": 15,
+    "rules_executed": [
+      "EI-R01",
+      "EI-R02",
+      "EI-R03",
+      "EI-R04",
+      "EI-R05",
+      "EI-R06",
+      "EI-R07",
+      "EI-R08",
+      "EI-R09",
+      "EI-R10",
+      "EI-R11",
+      "EI-R12",
+      "EI-R13",
+      "EI-R14",
+      "EI-R15"
+    ],
+    "rules_skipped": [],
+    "engine_errors": [],
+    "dimensoes_coletadas": {
+      "processos": 7,
+      "permissoes": 4,
+      "servicos": 3,
+      "logs": 7,
+      "identidades": 2
+    },
+    "dimensoes_ausentes": [],
+    "grafo": {
+      "nodes": 23,
+      "edges": 32,
+      "node_file": 4,
+      "node_log": 7,
+      "node_process": 7,
+      "node_service": 3,
+      "node_user": 2,
+      "edge_contido-em": 2,
+      "edge_emitido-por": 3,
+      "edge_executa-como": 10,
+      "edge_gerencia": 3,
+      "edge_pai-de": 6,
+      "edge_refere-pid": 6,
+      "edge_usa-script": 2
+    },
+    "plataforma": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35"
+  },
+  "limitations": [
+    "Analise baseada em um snapshot pontual: comportamento anterior ou posterior a coleta nao e observado, e PIDs podem ser reaproveitados.",
+    "A ferramenta nao inspeciona o conteudo dos arquivos nem executa analise de binarios; decide a partir de metadados e das relacoes entre eles.",
+    "Escopo adotado: processos, permissoes, servicos e logs do sistema. Conexoes de rede, contas do sistema e arquivos abertos nao sao coletados - uma URL em linha de comando nao prova que houve conexao.",
+    "ACLs POSIX estendidas, atributos, capabilities e politicas MAC (SELinux/AppArmor) nao sao lidos: um recurso pode estar mais protegido do que o modo octal sugere.",
+    "Sem privilegio de root, cmdline e executavel de processos de outros usuarios ficam incompletos; a coleta registra isso nas notas.",
+    "Namespaces de containers nao sao percorridos.",
+    "A ferramenta nao conclui a existencia de comprometimento: todo achado carrega 'exploracao_comprovada: false'."
+  ],
+  "notes": []
+}

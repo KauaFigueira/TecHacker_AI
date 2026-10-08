@@ -1,0 +1,5 @@
+# O núcleo do Endpoint Investigator usa apenas a biblioteca padrão do Python 3.10+.
+# Não há dependências obrigatórias.
+#
+# Para a camada 6 opcional com modelo de linguagem:
+#   pip install -r requirements-ai.txt
